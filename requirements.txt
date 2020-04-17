@@ -1,0 +1,13 @@
+click>=7.1.1
+Flask>=1.1.2
+gunicorn>=20.0.4
+itsdangerous>=1.1.0
+Jinja2>=2.11.1
+MarkupSafe>=1.1.1
+Werkzeug>=1.0.1
+google-cloud-pubsub>=0.27.0
+requests>=2.22.0
+bs4>=0.0.1
+lxml>=4.4.2
+pandas>=0.25.3
+xlrd>=1.2.0

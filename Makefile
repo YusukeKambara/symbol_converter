@@ -1,4 +1,4 @@
-VERSION := 0.0.1
+VERSION := 0.0.2
 IMAGE_NAME := symbol-converter
 SERVICE_NAME := symbol-converter
 PROJECT_NAME := develop

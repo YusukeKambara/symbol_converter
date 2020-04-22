@@ -6,6 +6,22 @@ Released on April 22, 2020
 
 ### Added
 
+* ticker-symbols excepted for stocks on the US market of NYSE
+
+### Changed
+
+* Nothing
+
+### Removed
+
+* Nothing
+
+## 0.0.2
+
+Released on April 22, 2020
+
+### Added
+
 * ticker-symbols on the US market of NYSE
 
 ### Changed

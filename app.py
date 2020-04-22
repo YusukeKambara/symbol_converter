@@ -71,6 +71,7 @@ def ticker_symbol_get(location):
         Occurred error to send message.\n{}
         """.format(str(e))
         print(msg)
+        sys.stdout.flush()
         return msg, 500
 
 @app.errorhandler(500)
@@ -80,6 +81,7 @@ def server_error(e):
     See logs for full stacktrace.
     """.format(e)
     print(msg)
+    sys.stdout.flush()
     return msg, 500
 
 

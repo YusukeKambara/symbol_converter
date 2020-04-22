@@ -18,8 +18,6 @@ app = Flask(__name__)
 ##############################################################################
 # Max retyr count
 MAX_RETRY_COUNT = 3
-BASE_URL = "https://www.jpx.co.jp"
-SRC_URL = "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html"
 
 ##############################################################################
 # Functions for corresponding to retry
@@ -47,29 +45,31 @@ def index():
     """
     return msg
 
-@app.route("/get/jp", methods=["POST"])
-def get():
+@app.route("/ticker/get/<location>", methods=["POST"])
+def ticker_symbol_get(location):
     try:
+        if location == "jp":
+            symbol_list = get_ticker_symbol_jp()
+        elif location == "us":
+            symbol_list = get_ticker_symbol_us()
+        else:
+            raise ValueError("Not built yet location [{}]".format(location))
+        
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(
             os.environ["GOOGLE_CLOUD_PROJECT"],
             os.environ["PUBSUB_TOPIC"]
         )
-        r = requests_retry_session().get(SRC_URL)
-        soup = BeautifulSoup(r.text.encode(r.encoding), "lxml")
-        r.connection.close()
-        link = soup.find("a", href=re.compile(".*data_j[.]xls"))
-        df = pd.read_excel(BASE_URL + link["href"])
-        for row in df.to_dict(orient="records"):
+        for row in symbol_list:
             publisher.publish(
                 topic_path,
                 data=json.dumps(row).encode("utf-8")
             )
-        return "complete to send message"
+        return "complete to send message", 200
     except Exception as e:
-        print("Occurred error to send message")
-        print(str(e))
-        return "Occurred error to send message"
+        return """
+        Occurred error to send message.\n{}
+        """.format(str(e)), 500
 
 @app.errorhandler(500)
 def server_error(e):
@@ -78,6 +78,42 @@ def server_error(e):
     An internal error occurred: <pre>{}</pre>
     See logs for full stacktrace.
     """.format(e), 500
+
+
+def get_ticker_symbol_jp():
+    # Getting symbols from [JPX]
+    JPX_BASE_URL = "https://www.jpx.co.jp"
+    JPX_SRC_URL = "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html"
+    r = requests_retry_session().get(JPX_SRC_URL)
+    soup = BeautifulSoup(r.text.encode(r.encoding), "lxml")
+    link = soup.find("a", href=re.compile(".*data_j[.]xls"))
+    df = pd.read_excel(JPX_BASE_URL + link["href"])
+    return df.to_dict(orient="records")
+
+def get_ticker_symbol_us():
+    # Getting symbols from [NYSE]
+    NYSE_URL = "url = https://www.nyse.com/api/quotes/filter"
+    # EQUITY                : Stocks
+    # EXCHANGE_TRADED_FUND  : ETFs
+    # INDEX                 : Indices
+    # REIT                  : REITs
+    instrument_types = [
+        "EQUITY",
+        "EXCHANGE_TRADED_FUND",
+        "INDEX",
+        "REIT"
+    ]
+    payload = {
+        "instrumentType": "EQUITY",
+        "pageNumber": 1,
+        "sortColumn": "NORMALIZED_TICKER",
+        "sortOrder": "ASC",
+        "maxResultsPerPage": 10000,
+        "filterToken": ""
+    }
+    r = requests_retry_session().post(NYSE_URL, json=payload)
+    r.raise_for_status()
+    return r.json()
 
 if __name__ == "__main__":
     app.run(debug=True,host="0.0.0.0",port=int(os.environ.get("PORT", 8080)))

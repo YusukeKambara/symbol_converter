@@ -67,17 +67,20 @@ def ticker_symbol_get(location):
             )
         return "complete to send message", 200
     except Exception as e:
-        return """
+        msg = """
         Occurred error to send message.\n{}
-        """.format(str(e)), 500
+        """.format(str(e))
+        print(msg)
+        return msg, 500
 
 @app.errorhandler(500)
 def server_error(e):
-    print("An error occurred during a request.")
-    return """
+    msg = """
     An internal error occurred: <pre>{}</pre>
     See logs for full stacktrace.
-    """.format(e), 500
+    """.format(e)
+    print(msg)
+    return msg, 500
 
 
 def get_ticker_symbol_jp():
@@ -91,8 +94,9 @@ def get_ticker_symbol_jp():
     return df.to_dict(orient="records")
 
 def get_ticker_symbol_us():
+    return_list = []
     # Getting symbols from [NYSE]
-    NYSE_URL = "url = https://www.nyse.com/api/quotes/filter"
+    NYSE_URL = "https://www.nyse.com/api/quotes/filter"
     # EQUITY                : Stocks
     # EXCHANGE_TRADED_FUND  : ETFs
     # INDEX                 : Indices
@@ -104,16 +108,19 @@ def get_ticker_symbol_us():
         "REIT"
     ]
     payload = {
-        "instrumentType": "EQUITY",
+        "instrumentType": "",
         "pageNumber": 1,
         "sortColumn": "NORMALIZED_TICKER",
         "sortOrder": "ASC",
         "maxResultsPerPage": 10000,
         "filterToken": ""
     }
-    r = requests_retry_session().post(NYSE_URL, json=payload)
-    r.raise_for_status()
-    return r.json()
+    for i_type in instrument_types:
+        payload["instrumentType"] = i_type
+        r = requests_retry_session().post(NYSE_URL, json=payload)
+        r.raise_for_status()
+        return_list.extend(r.json())
+    return return_list
 
 if __name__ == "__main__":
     app.run(debug=True,host="0.0.0.0",port=int(os.environ.get("PORT", 8080)))
